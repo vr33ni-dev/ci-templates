@@ -1,0 +1,44 @@
+name: GitLab Delete Branch (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      gitlab_url:
+        description: "Target GitLab repo HTTPS URL (ends with .git)"
+        required: true
+        type: string
+      branch:
+        description: "Branch name to delete on GitLab"
+        required: true
+        type: string
+      allow_default:
+        description: "Allow deleting 'main' or 'master'"
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      gitlab_token:
+        required: true
+
+jobs:
+  delete_branch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Guard default branches
+        if: inputs.allow_default == false && (inputs.branch == 'main' || inputs.branch == 'master')
+        run: |
+          echo "Refusing to delete default branch '${{ inputs.branch }}' (set allow_default: true to override)." >&2
+          exit 1
+
+      - name: Delete branch on GitLab
+        env:
+          GITLAB_URL: ${{ inputs.gitlab_url }}
+          GITLAB_TOKEN: ${{ secrets.gitlab_token }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add gitlab "https://oauth2:${GITLAB_TOKEN}@${GITLAB_URL#https://}"
+          git push gitlab :refs/heads/${BRANCH}
