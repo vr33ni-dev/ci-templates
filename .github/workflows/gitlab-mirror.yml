@@ -15,23 +15,28 @@ on:
 jobs:
   mirror:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    concurrency:
-      group: gitlab-mirror-${{ github.repository }}
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Push branches & tags (non-destructive)
+      - name: Add GitLab remote
         env:
           GITLAB_URL: ${{ inputs.gitlab_url }}
           GITLAB_TOKEN: ${{ secrets.gitlab_token }}
         run: |
           set -euo pipefail
+          git init .
           git remote add gitlab "https://oauth2:${GITLAB_TOKEN}@${GITLAB_URL#https://}"
+
+      - name: Prefetch GitLab (populate remote-tracking refs for lease)
+        run: |
+          set -euo pipefail
+          git fetch --prune gitlab +refs/heads/*:refs/remotes/gitlab/* --tags || true
+
+      - name: Push branches & tags (non-destructive)
+        run: |
+          set -euo pipefail
           git push gitlab --force-with-lease --all
           git push gitlab --force-with-lease --tags

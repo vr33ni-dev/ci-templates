@@ -21,7 +21,7 @@ Push all branches & tags from GitHub → GitLab (no deletions).
 **Caller example (in your project):**
 
 ```yaml
-# .github/workflows/mirror-to-gitlab.yml
+# .github/workflows/gitlab-mirror.yml
 name: Mirror to GitLab
 on:
   push:
